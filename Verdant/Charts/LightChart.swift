@@ -45,7 +45,7 @@ struct LightChart: View {
             }
         }
         .chartYAxis(.hidden)
-        .chartForegroundStyleScale(["Healthy range": .green])
+        .chartForegroundStyleScale(["Healthy range": Color("HealthyRangeFill")])
         .frame(maxHeight: 100)
     }
 }
