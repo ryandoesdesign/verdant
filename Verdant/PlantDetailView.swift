@@ -31,7 +31,7 @@ struct PlantDetailView: View {
                     .frame(height: 187)
                     .clipShape(RoundedRectangle(cornerRadius: 24))
                 
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 8) {
                         Image(systemName: "drop.fill")
                         Text("Soil Moisture")
@@ -39,8 +39,6 @@ struct PlantDetailView: View {
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .background(Color.gray.opacity(0.2))
-                    
-                    Divider()
                     
                     SoilMoistureChart(
                         healthySaturation: 15...60,
@@ -71,7 +69,7 @@ struct PlantDetailView: View {
                     
                 }
                 
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 8) {
                         Image(systemName: "sun.max.fill")
                         Text("Light")
@@ -79,8 +77,6 @@ struct PlantDetailView: View {
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .background(Color.gray.opacity(0.2))
-                    
-                    Divider()
                     
                     LightChart(
                         healthyIntensity: 1500...6000,
