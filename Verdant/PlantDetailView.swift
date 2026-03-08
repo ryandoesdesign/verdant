@@ -38,7 +38,6 @@ struct PlantDetailView: View {
                     }
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                    .background(Color.gray.opacity(0.2))
                     
                     SoilMoistureChart(
                         healthySaturation: 15...60,
@@ -65,7 +64,6 @@ struct PlantDetailView: View {
                             SoilMoistureMeasurement(value: 66, timestamp: Calendar.current.date(byAdding: .hour, value: -38, to: Date())!),
                         ]
                     )
-                    .background(Color.gray.opacity(0.2))
                     
                 }
                 
@@ -76,7 +74,6 @@ struct PlantDetailView: View {
                     }
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                    .background(Color.gray.opacity(0.2))
                     
                     LightChart(
                         healthyIntensity: 1500...6000,
@@ -87,7 +84,6 @@ struct PlantDetailView: View {
                             LightMeasurement(value: 3600, timestamp: Calendar.current.date(byAdding: .minute, value: -45, to: Date())!),
                         ]
                     )
-                    .background(Color.gray.opacity(0.2))
                     
                 }
             }
