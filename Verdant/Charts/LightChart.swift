@@ -7,11 +7,18 @@
 
 import SwiftUI
 import Charts
+import SwiftData
 
-struct LightMeasurement: Identifiable, Equatable {
+@Model
+class LightMeasurement {
     var id: UUID = UUID()
     var value: Int
     var timestamp: Date
+    
+    init(value: Int, timestamp: Date) {
+        self.value = value
+        self.timestamp = timestamp
+    }
 }
 
 struct LightChart: View {
@@ -19,38 +26,48 @@ struct LightChart: View {
     let measurements: [LightMeasurement]
     
     var body: some View {
-        Chart {
-            RectangleMark(
-                xStart: .value("Start", measurements.min(by: { first, second in first.timestamp < second.timestamp })!.timestamp),
-                xEnd: .value("End", measurements.max(by: { first, second in first.timestamp < second.timestamp })!.timestamp),
-                yStart: .value("Minimum healthy intensity", healthyIntensity.lowerBound),
-                yEnd: .value("Maximum healthy intensity", healthyIntensity.upperBound)
+        if measurements.isEmpty {
+            ContentUnavailableView(
+                "No Measurements Yet",
+                systemImage: "chart.line.uptrend.xyaxis",
+                description: Text("Light intensity data will appear here once measurements begin.")
             )
-            .foregroundStyle(by: .value("Legend", "Healthy range"))
-            
-            // Line and points for each measurement
-            ForEach(measurements) { measurement in
-                LineMark(
-                    x: .value("Time", measurement.timestamp),
-                    y: .value("Intensity", measurement.value)
+            .background(Color(.systemGray6))
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+        } else {
+            Chart {
+                RectangleMark(
+                    xStart: .value("Start", measurements.min(by: { first, second in first.timestamp < second.timestamp })!.timestamp),
+                    xEnd: .value("End", measurements.max(by: { first, second in first.timestamp < second.timestamp })!.timestamp),
+                    yStart: .value("Minimum healthy intensity", healthyIntensity.lowerBound),
+                    yEnd: .value("Maximum healthy intensity", healthyIntensity.upperBound)
                 )
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(by: .value("Legend", "Healthy range"))
                 
-                if measurement == measurements.max(by: { first, second in first.timestamp < second.timestamp }) {
-                    PointMark(
+                // Line and points for each measurement
+                ForEach(measurements) { measurement in
+                    LineMark(
                         x: .value("Time", measurement.timestamp),
                         y: .value("Intensity", measurement.value)
                     )
+                    .foregroundStyle(Color.accentColor)
+                    
+                    if measurement == measurements.max(by: { first, second in first.timestamp < second.timestamp }) {
+                        PointMark(
+                            x: .value("Time", measurement.timestamp),
+                            y: .value("Intensity", measurement.value)
+                        )
+                    }
                 }
             }
+            .chartYAxis(.hidden)
+            .chartForegroundStyleScale(["Healthy range": Color("HealthyRangeFill")])
+            .frame(maxHeight: 100)
         }
-        .chartYAxis(.hidden)
-        .chartForegroundStyleScale(["Healthy range": Color("HealthyRangeFill")])
-        .frame(maxHeight: 100)
     }
 }
 
-#Preview {
+#Preview("With Measurements") {
     let lightMeasurements = [
         LightMeasurement(value: 2500, timestamp: Date()),
         LightMeasurement(value: 2505, timestamp: Calendar.current.date(byAdding: .minute, value: -15, to: Date())!),
@@ -76,7 +93,18 @@ struct LightChart: View {
     let healthyLightIntensity = 1500...6000
     
     LightChart(
-        healthyIntensity: healthyLightIntensity, measurements: lightMeasurements
+        healthyIntensity: healthyLightIntensity,
+        measurements: lightMeasurements
     )
     .padding()
 }
+#Preview("Empty State") {
+    let healthyLightIntensity = 1500...6000
+    
+    LightChart(
+        healthyIntensity: healthyLightIntensity,
+        measurements: []
+    )
+    .padding()
+}
+
