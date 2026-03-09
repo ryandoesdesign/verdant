@@ -74,7 +74,7 @@ struct PlantsView : View {
         }
         .sheet(isPresented: $showingAddPlant) {
             NavigationStack {
-                AddPlantView()
+                PickSpeciesView()
             }
         }
     }

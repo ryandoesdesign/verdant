@@ -179,7 +179,7 @@ extension Species {
     }
 }
 
-struct AddPlantView : View {
+struct PickSpeciesView : View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var searchText = ""
@@ -196,30 +196,42 @@ struct AddPlantView : View {
     }
     
     var body: some View {
-        List {
-            ForEach(filteredSpecies, id: \.scientificName) { species in
-                NavigationLink {
-                    AddPlantName(species: species)
-                        .environment(\.dismissSheet, dismiss)
-                } label: {
-                    HStack(spacing: 12) {
-                        PlantImage(data: nil)
-                            .frame(width: 48, height: 48)
-                            .aspectRatio(contentMode: .fill)
-                        
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(species.commonName)
-                                .font(.headline)
-                            Text(species.scientificName)
-                                .font(.caption)
-                                .italic()
-                                .foregroundStyle(.secondary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Add a plant")
+                        .font(Font.largeTitle.bold())
+                    Text("Find your plant's species.")
+                }
+                ForEach(filteredSpecies, id: \.scientificName) { species in
+                    NavigationLink {
+                        AddNameView(species: species)
+                            .environment(\.dismissSheet, dismiss)
+                    } label: {
+                        HStack(spacing: 12) {
+                            PlantImage(data: nil)
+                                .frame(width: 48, height: 48)
+                                .aspectRatio(contentMode: .fill)
+                            
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(species.commonName)
+                                    .font(.headline)
+                                Text(species.scientificName)
+                                    .font(.caption)
+                                    .italic()
+                                    .foregroundStyle(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
                         }
+                        .tag(species)
                     }
-                    .tag(species)
                 }
             }
+            .padding()
         }
         .searchable(text: $searchText, prompt: "Search plants")
         .toolbar {
@@ -236,7 +248,7 @@ struct AddPlantView : View {
 }
 #Preview {
     NavigationStack {
-        AddPlantView()
+        PickSpeciesView()
     }
 }
 
