@@ -16,11 +16,8 @@ struct PlantDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                Image("plant")
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
+                PlantImage(plant: plant)
                     .frame(height: 187)
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
                 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 8) {

@@ -50,6 +50,9 @@ class Plant {
     @Relationship(deleteRule: .cascade)
     var lightMeasurements: [LightMeasurement] = []
     
+    @Attribute(.externalStorage)
+    var image: Data? = nil
+    
     init(name: String, species: Species) {
         self.name = name
         self.species = species

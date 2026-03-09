@@ -1,0 +1,21 @@
+{
+  "images" : [
+    {
+      "filename" : "kararileycreepingfig-12-15f7a52d6c944fda8d2ca10f0afff905.jpg",
+      "idiom" : "universal",
+      "scale" : "1x"
+    },
+    {
+      "idiom" : "universal",
+      "scale" : "2x"
+    },
+    {
+      "idiom" : "universal",
+      "scale" : "3x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
