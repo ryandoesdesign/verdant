@@ -32,24 +32,62 @@ struct VerdantApp: App {
     }
     
     private func seedSpeciesIfNeeded(context: ModelContext) {
-        // Check if species already exist
+        // Fetch existing species
         let descriptor = FetchDescriptor<Species>()
         let existingSpecies = (try? context.fetch(descriptor)) ?? []
         
-        // Only seed if the database is empty
-        guard existingSpecies.isEmpty else { return }
+        // Create a dictionary of existing species by scientific name for quick lookup
+        let existingSpeciesDict = Dictionary(uniqueKeysWithValues: existingSpecies.map { ($0.scientificName, $0) })
         
-        // Insert all species from the library
-        for species in Species.library {
-            context.insert(species)
+        var addedCount = 0
+        var updatedCount = 0
+        
+        // Process each species in the library
+        for librarySpecies in Species.library {
+            if let existingSpecies = existingSpeciesDict[librarySpecies.scientificName] {
+                // Species exists - check if it needs updating
+                var needsUpdate = false
+                
+                if existingSpecies.healthySoilMoistureRange != librarySpecies.healthySoilMoistureRange {
+                    existingSpecies.healthySoilMoistureRange = librarySpecies.healthySoilMoistureRange
+                    needsUpdate = true
+                }
+                
+                if existingSpecies.healthyLightRange != librarySpecies.healthyLightRange {
+                    existingSpecies.healthyLightRange = librarySpecies.healthyLightRange
+                    needsUpdate = true
+                }
+                
+                if existingSpecies.healthyTemperatureRange != librarySpecies.healthyTemperatureRange {
+                    existingSpecies.healthyTemperatureRange = librarySpecies.healthyTemperatureRange
+                    needsUpdate = true
+                }
+                
+                if existingSpecies.healthyHumidityRange != librarySpecies.healthyHumidityRange {
+                    existingSpecies.healthyHumidityRange = librarySpecies.healthyHumidityRange
+                    needsUpdate = true
+                }
+                
+                if needsUpdate {
+                    updatedCount += 1
+                }
+            } else {
+                // Species doesn't exist - add it
+                context.insert(librarySpecies)
+                addedCount += 1
+            }
         }
         
-        // Save the context
-        do {
-            try context.save()
-            print("Successfully seeded \(Species.library.count) species")
-        } catch {
-            print("Failed to seed species: \(error)")
+        // Save the context if there were any changes
+        if addedCount > 0 || updatedCount > 0 {
+            do {
+                try context.save()
+                print("Species sync complete: \(addedCount) added, \(updatedCount) updated (total: \(Species.library.count))")
+            } catch {
+                print("Failed to sync species: \(error)")
+            }
+        } else {
+            print("All \(Species.library.count) species are up to date")
         }
     }
 }

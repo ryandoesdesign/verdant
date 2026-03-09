@@ -137,6 +137,13 @@ extension Species {
             healthyHumidityRange: 40...60
         ),
         Species(
+            scientificName: "Peperomia polybotrya",
+            healthySoilMoistureRange: 30...50,
+            healthyLightRange: 1500...3500,
+            healthyTemperatureRange: 18...24,
+            healthyHumidityRange: 40...60
+        ),
+        Species(
             scientificName: "Fittonia albivenis",
             healthySoilMoistureRange: 60...80,
             healthyLightRange: 1000...2500,
@@ -172,6 +179,7 @@ extension Species {
         case "Ficus pumila": return "Creeping Fig"
         case "Chamaedorea elegans": return "Parlor Palm"
         case "Peperomia obtusifolia": return "Peperomia"
+        case "Peperomia polybotrya": return "Raindrop Peperomia"
         case "Fittonia albivenis": return "Nerve Plant"
         case "Crassula ovata": return "Jade Plant"
         default: return scientificName
@@ -204,31 +212,35 @@ struct PickSpeciesView : View {
                         .font(Font.largeTitle.bold())
                     Text("Find your plant's species.")
                 }
-                ForEach(filteredSpecies, id: \.scientificName) { species in
-                    NavigationLink {
-                        AddNameView(species: species)
-                            .environment(\.dismissSheet, dismiss)
-                    } label: {
-                        HStack(spacing: 12) {
-                            PlantImage(data: nil)
-                                .frame(width: 48, height: 48)
-                                .aspectRatio(contentMode: .fill)
-                            
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(species.commonName)
-                                    .font(.headline)
-                                Text(species.scientificName)
-                                    .font(.caption)
-                                    .italic()
-                                    .foregroundStyle(.secondary)
+                if (filteredSpecies.isEmpty && !searchText.isEmpty) {
+                    ContentUnavailableView("No plants found.", systemImage: "magnifyingglass")
+                } else {
+                    ForEach(filteredSpecies, id: \.scientificName) { species in
+                        NavigationLink {
+                            AddNameView(species: species)
+                                .environment(\.dismissSheet, dismiss)
+                        } label: {
+                            HStack(spacing: 12) {
+                                PlantImage(data: nil)
+                                    .frame(width: 48, height: 48)
+                                    .aspectRatio(contentMode: .fill)
+                                
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(species.commonName)
+                                        .font(.headline)
+                                    Text(species.scientificName)
+                                        .font(.caption)
+                                        .italic()
+                                        .foregroundStyle(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
                             }
-                            
-                            Spacer()
-                            
-                            Image(systemName: "chevron.right")
+                            .tag(species)
                         }
-                        .tag(species)
                     }
                 }
             }
@@ -250,6 +262,16 @@ struct PickSpeciesView : View {
 #Preview {
     NavigationStack {
         PickSpeciesView()
+    }
+    .modelContainer(for: Species.self) { result in
+        guard case .success(let container) = result else {
+            fatalError("Failed to create model container")
+        }
+        
+        // Insert all species from the library
+        for species in Species.library {
+            container.mainContext.insert(species)
+        }
     }
 }
 

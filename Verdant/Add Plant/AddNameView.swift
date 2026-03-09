@@ -31,42 +31,41 @@ struct AddNameView : View {
     @Query private var allPlants: [Plant]
     
     var body: some View {
-        VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 24) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Name your plant")
-                        .font(Font.largeTitle.bold())
-                    Text("Your plant's name will be used to identify it. You can always change it later.")
-                }
-                
-                VStack(alignment: .leading, spacing: 12) {
-                    TextField("Your plant's name", text: $name)
-                        .textFieldStyle(.roundedBorder)
-                    
-                    // Show warning if name is duplicate
-                    if isDuplicateName {
-                        Label("You already have a plant with this name", systemImage: "exclamationmark.triangle.fill")
-                            .font(.caption)
-                            .labelIconToTitleSpacing(4)
-                            .foregroundStyle(.orange)
-                    }
-                }
-                
-                Spacer()
+        VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Name your plant")
+                    .font(Font.largeTitle.bold())
+                Text("Your plant's name will be used to identify it. You can always change it later.")
             }
-            .padding()
             
-            Button {
-                addPlant()
-            } label: {
-                Text("Continue")
-                    .frame(maxWidth: .infinity)
+            VStack(alignment: .leading, spacing: 12) {
+                TextField("Your plant's name", text: $name)
+                    .textFieldStyle(.roundedBorder)
+                
+                // Show warning if name is duplicate
+                if isDuplicateName {
+                    Label("You already have a plant with this name", systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .labelIconToTitleSpacing(4)
+                        .foregroundStyle(.orange)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .padding()
-            .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+            
+            Spacer()
         }
+        .padding()
+        
+        NavigationLink {
+            AddPhotoView(name: name, species: species)
+                .environment(\.dismissSheet, dismissSheet)
+        } label: {
+            Text("Continue")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        .padding()
+        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
         .onAppear {
             if name.isEmpty {
                 name = generateDefaultName()
@@ -98,20 +97,6 @@ struct AddNameView : View {
     private func checkForDuplicateName(_ name: String) {
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
         isDuplicateName = allPlants.contains { $0.name.lowercased() == trimmedName.lowercased() }
-    }
-    
-    private func addPlant() {
-        let newPlant = Plant(name: name, species: species)
-        modelContext.insert(newPlant)
-        
-        // Save the context to persist the changes
-        do {
-            try modelContext.save()
-        } catch {
-            print("Failed to save plant: \(error)")
-        }
-        
-        dismissSheet?()
     }
 }
 

@@ -41,6 +41,7 @@ struct PlantGridCell: View {
 struct PlantsView : View {
     @Query var plants: [Plant]
     @State private var showingAddPlant = false
+    @State private var plantToDelete: Plant?
     @Environment(\.modelContext) private var modelContext
     
     let columns = [
@@ -63,7 +64,26 @@ struct PlantsView : View {
                             NavigationLink {
                                 PlantDetailView(plant: plant)
                             } label: {
-                                PlantGridCell(plant: plant, onDelete: { deletePlant(plant) })
+                                PlantGridCell(plant: plant, onDelete: { 
+                                    plantToDelete = plant
+                                })
+                                .confirmationDialog(
+                                    "Delete Plant",
+                                    isPresented: Binding(
+                                        get: { plantToDelete != nil },
+                                        set: { if !$0 { plantToDelete = nil } }
+                                    ),
+                                    presenting: plantToDelete
+                                ) { plant in
+                                    Button("Delete Plant", role: .destructive) {
+                                        deletePlant(plant)
+                                    }
+                                    Button("Cancel", role: .cancel) {
+                                        plantToDelete = nil
+                                    }
+                                } message: { plant in
+                                    Text("Are you sure you want to delete \(plant.name)?")
+                                }
                             }
                         }
                     }
@@ -127,15 +147,26 @@ struct PlantsView : View {
         healthyHumidityRange: 50...70
     )
     
+    let peperomiaSpecies = Species(
+        scientificName: "Peperomia polybotrya",
+        healthySoilMoistureRange: 30...50,
+        healthyLightRange: 8000...16000,
+        healthyTemperatureRange: 18...24,
+        healthyHumidityRange: 40...60
+    )
+    
     let plant1 = Plant(name: "Swiss Cheese Plant", species: monsteraSpecies, image: UIImage(named: "Monstera")?.jpegData(compressionQuality: 0.8))
     
     let plant2 = Plant(name: "Fiddle Leaf Fig", species: ficusSpecies, image: UIImage(named: "CreepingFig")?.jpegData(compressionQuality: 0.8))
     
-    let plant3 = Plant(name: "Golden Pothos", species: pothosSpecies, image: UIImage(named: "Peperomia")?.jpegData(compressionQuality: 0.8))
+    let plant3 = Plant(name: "Golden Pothos", species: pothosSpecies, image: UIImage(named: "Pothos")?.jpegData(compressionQuality: 0.8))
+    
+    let plant4 = Plant(name: "Raindrop Peperomia", species: peperomiaSpecies, image: UIImage(named: "Peperomia")?.jpegData(compressionQuality: 0.8))
     
     container.mainContext.insert(plant1)
     container.mainContext.insert(plant2)
     container.mainContext.insert(plant3)
+    container.mainContext.insert(plant4)
     
     return NavigationStack {
         PlantsView()
