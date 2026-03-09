@@ -13,7 +13,7 @@ struct PlantGridCell: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            PlantImage(plant: plant)
+            PlantImage(data: plant.image)
                 .aspectRatio(1, contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             

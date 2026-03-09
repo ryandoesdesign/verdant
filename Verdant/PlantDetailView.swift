@@ -16,7 +16,7 @@ struct PlantDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                PlantImage(plant: plant)
+                PlantImage(data: plant.image)
                     .frame(height: 187)
                 
                 VStack(alignment: .leading, spacing: 12) {
