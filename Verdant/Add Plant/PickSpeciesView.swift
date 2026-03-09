@@ -11,151 +11,39 @@ import SwiftData
 extension Species {
     static let library: [Species] = [
         Species(
-            scientificName: "Epipremnum aureum",
-            healthySoilMoistureRange: 40...60,
-            healthyLightRange: 1000...3000,
-            healthyTemperatureRange: 18...29,
-            healthyHumidityRange: 40...60
-        ),
-        Species(
-            scientificName: "Sansevieria trifasciata",
-            healthySoilMoistureRange: 20...40,
-            healthyLightRange: 500...5000,
-            healthyTemperatureRange: 15...29,
-            healthyHumidityRange: 30...50
-        ),
-        Species(
-            scientificName: "Monstera deliciosa",
-            healthySoilMoistureRange: 50...70,
-            healthyLightRange: 2000...4000,
-            healthyTemperatureRange: 18...27,
-            healthyHumidityRange: 60...80
-        ),
-        Species(
-            scientificName: "Ficus lyrata",
-            healthySoilMoistureRange: 40...60,
-            healthyLightRange: 3500...5000,
-            healthyTemperatureRange: 18...24,
-            healthyHumidityRange: 40...60
-        ),
-        Species(
-            scientificName: "Spathiphyllum wallisii",
-            healthySoilMoistureRange: 60...80,
-            healthyLightRange: 1000...2500,
-            healthyTemperatureRange: 18...27,
-            healthyHumidityRange: 50...70
-        ),
-        Species(
-            scientificName: "Chlorophytum comosum",
-            healthySoilMoistureRange: 40...60,
-            healthyLightRange: 1500...4000,
-            healthyTemperatureRange: 15...24,
-            healthyHumidityRange: 40...60
-        ),
-        Species(
-            scientificName: "Aloe vera",
-            healthySoilMoistureRange: 20...40,
-            healthyLightRange: 4000...6000,
-            healthyTemperatureRange: 13...27,
-            healthyHumidityRange: 30...50
-        ),
-        Species(
-            scientificName: "Ficus elastica",
-            healthySoilMoistureRange: 40...60,
-            healthyLightRange: 2500...4500,
-            healthyTemperatureRange: 18...27,
-            healthyHumidityRange: 40...60
-        ),
-        Species(
             scientificName: "Zamioculcas zamiifolia",
-            healthySoilMoistureRange: 20...40,
-            healthyLightRange: 500...3500,
-            healthyTemperatureRange: 15...27,
-            healthyHumidityRange: 30...50
-        ),
-        Species(
-            scientificName: "Philodendron hederaceum",
-            healthySoilMoistureRange: 40...60,
-            healthyLightRange: 1500...3500,
-            healthyTemperatureRange: 18...27,
-            healthyHumidityRange: 50...70
-        ),
-        Species(
-            scientificName: "Nephrolepis exaltata",
-            healthySoilMoistureRange: 70...90,
-            healthyLightRange: 1500...3500,
-            healthyTemperatureRange: 16...24,
-            healthyHumidityRange: 70...90
-        ),
-        Species(
-            scientificName: "Hedera helix",
-            healthySoilMoistureRange: 50...70,
-            healthyLightRange: 1500...3500,
-            healthyTemperatureRange: 10...21,
-            healthyHumidityRange: 50...70
-        ),
-        Species(
-            scientificName: "Calathea ornata",
-            healthySoilMoistureRange: 60...80,
-            healthyLightRange: 1000...2500,
-            healthyTemperatureRange: 18...27,
-            healthyHumidityRange: 60...80
-        ),
-        Species(
-            scientificName: "Dracaena marginata",
-            healthySoilMoistureRange: 40...60,
-            healthyLightRange: 1500...3500,
-            healthyTemperatureRange: 18...24,
-            healthyHumidityRange: 40...60
-        ),
-        Species(
-            scientificName: "Echeveria elegans",
-            healthySoilMoistureRange: 10...30,
-            healthyLightRange: 5000...8000,
-            healthyTemperatureRange: 15...27,
-            healthyHumidityRange: 20...40
+            healthySoilMoistureRange: 15...60,
+            healthyLightRange: 600...20000,
+            healthyTemperatureRange: 10...32,
+            healthyHumidityRange: 30...80
         ),
         Species(
             scientificName: "Ficus pumila",
-            healthySoilMoistureRange: 50...70,
-            healthyLightRange: 2000...4000,
-            healthyTemperatureRange: 16...24,
-            healthyHumidityRange: 50...70
+            healthySoilMoistureRange: 15...60,
+            healthyLightRange: 1500...6000,
+            healthyTemperatureRange: 10...32,
+            healthyHumidityRange: 30...85
         ),
         Species(
             scientificName: "Chamaedorea elegans",
-            healthySoilMoistureRange: 50...70,
-            healthyLightRange: 1000...3000,
-            healthyTemperatureRange: 18...27,
-            healthyHumidityRange: 40...60
-        ),
-        Species(
-            scientificName: "Peperomia obtusifolia",
-            healthySoilMoistureRange: 40...60,
-            healthyLightRange: 1500...3500,
-            healthyTemperatureRange: 18...24,
-            healthyHumidityRange: 40...60
+            healthySoilMoistureRange: 15...60,
+            healthyLightRange: 800...22000,
+            healthyTemperatureRange: 10...32,
+            healthyHumidityRange: 30...85
         ),
         Species(
             scientificName: "Peperomia polybotrya",
-            healthySoilMoistureRange: 30...50,
-            healthyLightRange: 1500...3500,
-            healthyTemperatureRange: 18...24,
-            healthyHumidityRange: 40...60
+            healthySoilMoistureRange: 15...60,
+            healthyLightRange: 1500...6000,
+            healthyTemperatureRange: 10...32,
+            healthyHumidityRange: 30...85
         ),
         Species(
             scientificName: "Fittonia albivenis",
-            healthySoilMoistureRange: 60...80,
-            healthyLightRange: 1000...2500,
-            healthyTemperatureRange: 18...24,
-            healthyHumidityRange: 60...80
-        ),
-        Species(
-            scientificName: "Crassula ovata",
-            healthySoilMoistureRange: 20...40,
-            healthyLightRange: 4000...6000,
-            healthyTemperatureRange: 15...24,
-            healthyHumidityRange: 30...50
+            healthySoilMoistureRange: 15...60,
+            healthyLightRange: 500...26000,
+            healthyTemperatureRange: 10...35,
+            healthyHumidityRange: 30...85
         ),
     ]
     

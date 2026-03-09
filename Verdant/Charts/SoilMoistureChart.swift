@@ -25,46 +25,49 @@ struct SoilMoistureChart: View {
     let healthySaturation: ClosedRange<Int>
     let currentCycleMeasurements: [SoilMoistureMeasurement]
     
-    var body: some View {
-        if currentCycleMeasurements.isEmpty {
-            ContentUnavailableView(
-                "No Measurements Yet",
-                systemImage: "chart.line.uptrend.xyaxis",
-                description: Text("Soil moisture data will appear here once measurements begin.")
-            )
-            .background(Color(.systemGray6))
-            .clipShape(RoundedRectangle(cornerRadius: 24))
+    // Default time range for display (24 hours)
+    private var timeRange: ClosedRange<Date> {
+        if let minDate = currentCycleMeasurements.min(by: { $0.timestamp < $1.timestamp })?.timestamp,
+           let maxDate = currentCycleMeasurements.max(by: { $0.timestamp < $1.timestamp })?.timestamp {
+            return minDate...maxDate
         } else {
-            Chart {
-                RectangleMark(
-                    xStart: .value("Start", currentCycleMeasurements.min(by: { $0.timestamp < $1.timestamp })!.timestamp),
-                    xEnd: .value("End", currentCycleMeasurements.max(by: { $0.timestamp < $1.timestamp })!.timestamp),
-                    yStart: .value("Minimum healthy saturation", healthySaturation.lowerBound),
-                    yEnd: .value("Maximum healthy saturation", healthySaturation.upperBound)
+            // Default to showing the last 24 hours when no measurements exist
+            let now = Date()
+            let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: now)!
+            return yesterday...now
+        }
+    }
+    
+    var body: some View {
+        Chart {
+            RectangleMark(
+                xStart: .value("Start", timeRange.lowerBound),
+                xEnd: .value("End", timeRange.upperBound),
+                yStart: .value("Minimum healthy saturation", healthySaturation.lowerBound),
+                yEnd: .value("Maximum healthy saturation", healthySaturation.upperBound)
+            )
+            .foregroundStyle(by: .value("Legend", "Healthy range"))
+            
+            ForEach(currentCycleMeasurements) { measurement in
+                LineMark(
+                    x: .value("Time", measurement.timestamp),
+                    y: .value("Saturation", measurement.value),
+                    series: .value("Cycle", "Current")
                 )
-                .foregroundStyle(by: .value("Legend", "Healthy range"))
+                .foregroundStyle(Color.accentColor)
                 
-                ForEach(currentCycleMeasurements) { measurement in
-                    LineMark(
+                // Highlight the most recent point
+                if measurement == currentCycleMeasurements.max(by: { first, second in first.timestamp < second.timestamp }) {
+                    PointMark(
                         x: .value("Time", measurement.timestamp),
-                        y: .value("Saturation", measurement.value),
-                        series: .value("Cycle", "Current")
+                        y: .value("Saturation", measurement.value)
                     )
-                    .foregroundStyle(Color.accentColor)
-                    
-                    // Highlight the most recent point
-                    if measurement == currentCycleMeasurements.max(by: { first, second in first.timestamp < second.timestamp }) {
-                        PointMark(
-                            x: .value("Time", measurement.timestamp),
-                            y: .value("Saturation", measurement.value)
-                        )
-                    }
                 }
             }
-            .chartYAxis(.hidden)
-            .chartForegroundStyleScale(["Healthy range": Color("HealthyRangeFill")])
-            .frame(maxHeight: 100)
         }
+        .chartYAxis(.hidden)
+        .chartForegroundStyleScale(["Healthy range": Color("HealthyRangeFill")])
+        .frame(maxHeight: 100)
     }
 }
 

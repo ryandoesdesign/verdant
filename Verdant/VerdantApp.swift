@@ -32,62 +32,48 @@ struct VerdantApp: App {
     }
     
     private func seedSpeciesIfNeeded(context: ModelContext) {
-        // Fetch existing species
+        // Fetch all existing species
         let descriptor = FetchDescriptor<Species>()
         let existingSpecies = (try? context.fetch(descriptor)) ?? []
         
-        // Create a dictionary of existing species by scientific name for quick lookup
-        let existingSpeciesDict = Dictionary(uniqueKeysWithValues: existingSpecies.map { ($0.scientificName, $0) })
+        // Create a dictionary for quick lookup by scientific name
+        var existingSpeciesDict: [String: Species] = [:]
+        for species in existingSpecies {
+            existingSpeciesDict[species.scientificName] = species
+        }
         
-        var addedCount = 0
         var updatedCount = 0
+        var insertedCount = 0
         
-        // Process each species in the library
+        // Insert or update species from the library
         for librarySpecies in Species.library {
             if let existingSpecies = existingSpeciesDict[librarySpecies.scientificName] {
-                // Species exists - check if it needs updating
-                var needsUpdate = false
-                
-                if existingSpecies.healthySoilMoistureRange != librarySpecies.healthySoilMoistureRange {
-                    existingSpecies.healthySoilMoistureRange = librarySpecies.healthySoilMoistureRange
-                    needsUpdate = true
-                }
-                
-                if existingSpecies.healthyLightRange != librarySpecies.healthyLightRange {
-                    existingSpecies.healthyLightRange = librarySpecies.healthyLightRange
-                    needsUpdate = true
-                }
-                
-                if existingSpecies.healthyTemperatureRange != librarySpecies.healthyTemperatureRange {
-                    existingSpecies.healthyTemperatureRange = librarySpecies.healthyTemperatureRange
-                    needsUpdate = true
-                }
-                
-                if existingSpecies.healthyHumidityRange != librarySpecies.healthyHumidityRange {
-                    existingSpecies.healthyHumidityRange = librarySpecies.healthyHumidityRange
-                    needsUpdate = true
-                }
-                
-                if needsUpdate {
-                    updatedCount += 1
-                }
+                // Update existing species without breaking relationships
+                existingSpecies.healthySoilMoistureRange = librarySpecies.healthySoilMoistureRange
+                existingSpecies.healthyLightRange = librarySpecies.healthyLightRange
+                existingSpecies.healthyTemperatureRange = librarySpecies.healthyTemperatureRange
+                existingSpecies.healthyHumidityRange = librarySpecies.healthyHumidityRange
+                updatedCount += 1
             } else {
-                // Species doesn't exist - add it
-                context.insert(librarySpecies)
-                addedCount += 1
+                // Insert new species
+                let newSpecies = Species(
+                    scientificName: librarySpecies.scientificName,
+                    healthySoilMoistureRange: librarySpecies.healthySoilMoistureRange,
+                    healthyLightRange: librarySpecies.healthyLightRange,
+                    healthyTemperatureRange: librarySpecies.healthyTemperatureRange,
+                    healthyHumidityRange: librarySpecies.healthyHumidityRange
+                )
+                context.insert(newSpecies)
+                insertedCount += 1
             }
         }
         
-        // Save the context if there were any changes
-        if addedCount > 0 || updatedCount > 0 {
-            do {
-                try context.save()
-                print("Species sync complete: \(addedCount) added, \(updatedCount) updated (total: \(Species.library.count))")
-            } catch {
-                print("Failed to sync species: \(error)")
-            }
-        } else {
-            print("All \(Species.library.count) species are up to date")
+        // Save the context
+        do {
+            try context.save()
+            print("Species library updated: \(insertedCount) inserted, \(updatedCount) updated")
+        } catch {
+            print("Failed to update species library: \(error)")
         }
     }
 }
