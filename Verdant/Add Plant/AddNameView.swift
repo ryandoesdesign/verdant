@@ -26,59 +26,81 @@ struct AddNameView : View {
     @State private var name: String = ""
     @State private var isGeneratingName = false
     @State private var showModelUnavailableAlert = false
+    @State private var isDuplicateName = false
     
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismissSheet) private var dismissSheet
     
+    @Query private var allPlants: [Plant]
+    
     private let languageModel = SystemLanguageModel.default
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Name your plant")
-                    .font(Font.largeTitle.bold())
-                Text("Your plant's name will be used to identify it. You can always change it later.")
-            }
-            
-            VStack(alignment: .leading, spacing: 12) {
-                TextField("Your plant's name", text: $name)
-                    .textFieldStyle(.roundedBorder)
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Name your plant")
+                        .font(Font.largeTitle.bold())
+                    Text("Your plant's name will be used to identify it. You can always change it later.")
+                }
                 
-                Button {
-                    Task {
-                        await generateRandomName()
+                VStack(alignment: .leading, spacing: 12) {
+                    TextField("Your plant's name", text: $name)
+                        .textFieldStyle(.roundedBorder)
+                    
+                    // Show warning if name is duplicate
+                    if isDuplicateName {
+                        Label("You already have a plant with this name", systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
                     }
-                } label: {
-                    if isGeneratingName {
-                        ProgressView()
-                            .controlSize(.small)
-                        Text("Generating...")
-                    } else {
-                        Label("Generate Random Name", systemImage: "sparkles")
+                    
+                    Button {
+                        Task {
+                            await generateRandomName()
+                        }
+                    } label: {
+                        if isGeneratingName {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("Generating...")
+                        } else {
+                            Label("Generate Random Name", systemImage: "sparkles")
+                        }
                     }
+                    .buttonStyle(.bordered)
+                    .disabled(isGeneratingName || languageModel.availability != .available)
                 }
-                .buttonStyle(.bordered)
-                .disabled(isGeneratingName || languageModel.availability != .available)
+                
+                // Show helpful message if Apple Intelligence isn't available
+                if languageModel.availability != .available {
+                    Text(availabilityMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                Spacer()
             }
+            .padding()
             
-            // Show helpful message if Apple Intelligence isn't available
-            if languageModel.availability != .available {
-                Text(availabilityMessage)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            Button {
+                addPlant()
+            } label: {
+                Text("Continue")
+                    .frame(maxWidth: .infinity)
             }
-            Spacer()
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .padding()
+            .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
         }
-        .padding()
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button {
-                    addPlant()
-                } label: {
-                    Label("Add Plant", systemImage: "checkmark")
-                }
-                .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+        .onAppear {
+            if name.isEmpty {
+                name = generateDefaultName()
             }
+        }
+        .onChange(of: name) { oldValue, newValue in
+            checkForDuplicateName(newValue)
         }
         .alert("Apple Intelligence Unavailable", isPresented: $showModelUnavailableAlert) {
             Button("OK", role: .cancel) {}
@@ -100,6 +122,29 @@ struct AddNameView : View {
         case .unavailable:
             return "Apple Intelligence is currently unavailable."
         }
+    }
+    
+    private func generateDefaultName() -> String {
+        let baseName = species.commonName
+        let existingNames = allPlants.map { $0.name }
+        
+        // Check if the base name is available
+        if !existingNames.contains(baseName) {
+            return baseName
+        }
+        
+        // Find the next available number
+        var number = 2
+        while existingNames.contains("\(baseName) #\(number)") {
+            number += 1
+        }
+        
+        return "\(baseName) #\(number)"
+    }
+    
+    private func checkForDuplicateName(_ name: String) {
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        isDuplicateName = allPlants.contains { $0.name.lowercased() == trimmedName.lowercased() }
     }
     
     private func addPlant() {
@@ -163,6 +208,9 @@ struct AddNameView : View {
 }
 
 #Preview {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: Plant.self, Species.self, configurations: config)
+    
     let species = Species(
         scientificName: "Peperomia obtusifolia",
         healthySoilMoistureRange: 40...60,
@@ -171,7 +219,16 @@ struct AddNameView : View {
         healthyHumidityRange: 40...60
     )
     
-    NavigationStack {
+    container.mainContext.insert(species)
+    
+    // Add some existing plants to test the numbering
+    let plant1 = Plant(name: "Peperomia", species: species)
+    let plant2 = Plant(name: "Peperomia #2", species: species)
+    container.mainContext.insert(plant1)
+    container.mainContext.insert(plant2)
+    
+    return NavigationStack {
         AddNameView(species: species)
     }
+    .modelContainer(container)
 }
