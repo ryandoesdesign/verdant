@@ -73,7 +73,9 @@ struct PlantsView : View {
             }
         }
         .sheet(isPresented: $showingAddPlant) {
-            AddPlantView()
+            NavigationStack {
+                AddPlantView()
+            }
         }
     }
 }

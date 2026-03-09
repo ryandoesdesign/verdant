@@ -115,6 +115,41 @@ extension Species {
             healthyTemperatureRange: 15...27,
             healthyHumidityRange: 20...40
         ),
+        Species(
+            scientificName: "Ficus pumila",
+            healthySoilMoistureRange: 50...70,
+            healthyLightRange: 2000...4000,
+            healthyTemperatureRange: 16...24,
+            healthyHumidityRange: 50...70
+        ),
+        Species(
+            scientificName: "Chamaedorea elegans",
+            healthySoilMoistureRange: 50...70,
+            healthyLightRange: 1000...3000,
+            healthyTemperatureRange: 18...27,
+            healthyHumidityRange: 40...60
+        ),
+        Species(
+            scientificName: "Peperomia obtusifolia",
+            healthySoilMoistureRange: 40...60,
+            healthyLightRange: 1500...3500,
+            healthyTemperatureRange: 18...24,
+            healthyHumidityRange: 40...60
+        ),
+        Species(
+            scientificName: "Fittonia albivenis",
+            healthySoilMoistureRange: 60...80,
+            healthyLightRange: 1000...2500,
+            healthyTemperatureRange: 18...24,
+            healthyHumidityRange: 60...80
+        ),
+        Species(
+            scientificName: "Crassula ovata",
+            healthySoilMoistureRange: 20...40,
+            healthyLightRange: 4000...6000,
+            healthyTemperatureRange: 15...24,
+            healthyHumidityRange: 30...50
+        ),
     ]
     
     var commonName: String {
@@ -134,6 +169,11 @@ extension Species {
         case "Calathea ornata": return "Calathea"
         case "Dracaena marginata": return "Dracaena"
         case "Echeveria elegans": return "Succulent"
+        case "Ficus pumila": return "Creeping Fig"
+        case "Chamaedorea elegans": return "Parlor Palm"
+        case "Peperomia obtusifolia": return "Peperomia"
+        case "Fittonia albivenis": return "Nerve Plant"
+        case "Crassula ovata": return "Jade Plant"
         default: return scientificName
         }
     }
@@ -143,7 +183,6 @@ struct AddPlantView : View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var searchText = ""
-    @State private var selectedSpecies: Species?
     
     var filteredSpecies: [Species] {
         if searchText.isEmpty {
@@ -157,10 +196,12 @@ struct AddPlantView : View {
     }
     
     var body: some View {
-        List(selection: $selectedSpecies) {
-            
-            Picker("Species", selection: $selectedSpecies) {
-                ForEach(filteredSpecies, id: \.scientificName) { species in
+        List {
+            ForEach(filteredSpecies, id: \.scientificName) { species in
+                NavigationLink {
+                    AddPlantName(species: species)
+                        .environment(\.dismissSheet, dismiss)
+                } label: {
                     HStack(spacing: 12) {
                         PlantImage(data: nil)
                             .frame(width: 48, height: 48)
@@ -179,10 +220,7 @@ struct AddPlantView : View {
                     .tag(species)
                 }
             }
-            .pickerStyle(.inline)
         }
-        .navigationTitle("Add Plant")
-        .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, prompt: "Search plants")
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
