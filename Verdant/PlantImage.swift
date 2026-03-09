@@ -19,7 +19,7 @@ struct PlantImage: View {
                         .resizable()
                         .scaledToFill()
                         .frame(width: geometry.size.width, height: geometry.size.height)
-                        .clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 } else {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color(.systemGray6))
@@ -39,14 +39,12 @@ struct PlantImage: View {
 #Preview("Plant Without Image") {
     PlantImage(data: nil)
         .frame(width: 200, height: 200)
-        .clipShape(RoundedRectangle(cornerRadius: 24))
 }
 
 #Preview("Plant With Image") {
     // Create a sample plant with image data
-    let sampleImageData = UIImage(systemName: "leaf.fill")!.pngData()
+    let sampleImageData = UIImage(named: "Peperomia")?.jpegData(compressionQuality: 0.8)
     
     PlantImage(data: sampleImageData)
         .frame(width: 200, height: 200)
-        .clipShape(RoundedRectangle(cornerRadius: 24))
 }

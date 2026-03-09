@@ -181,14 +181,15 @@ extension Species {
 
 struct PickSpeciesView : View {
     @Environment(\.dismiss) private var dismiss
+    @Query(sort: \Species.scientificName) private var allSpecies: [Species]
     
     @State private var searchText = ""
     
     var filteredSpecies: [Species] {
         if searchText.isEmpty {
-            return Species.library
+            return allSpecies
         } else {
-            return Species.library.filter { species in
+            return allSpecies.filter { species in
                 species.commonName.localizedCaseInsensitiveContains(searchText) ||
                 species.scientificName.localizedCaseInsensitiveContains(searchText)
             }

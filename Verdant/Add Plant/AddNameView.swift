@@ -103,8 +103,17 @@ struct AddNameView : View {
     }
     
     private func addPlant() {
+        // Species is already in the database, so we don't need to insert it
         let newPlant = Plant(name: name, species: species)
         modelContext.insert(newPlant)
+        
+        // Save the context to persist the changes
+        do {
+            try modelContext.save()
+        } catch {
+            print("Failed to save plant: \(error)")
+        }
+        
         dismissSheet?()
     }
     

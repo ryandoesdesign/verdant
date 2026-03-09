@@ -10,7 +10,7 @@ import SwiftData
 
 @Model
 class Species {
-    var scientificName: String
+    @Attribute(.unique) var scientificName: String
     
     // Soil moisture (%)
     var healthySoilMoistureRange: ClosedRange<Int>

@@ -69,7 +69,8 @@ struct PlantDetailView: View {
                     healthyLightRange: 1500...6000,
                     healthyTemperatureRange: 18...24,
                     healthyHumidityRange: 40...60
-                )
+                ),
+                image: UIImage(named: "Peperomia")?.jpegData(compressionQuality: 0.8)
             )
         )
     }
