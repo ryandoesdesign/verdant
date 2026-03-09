@@ -10,6 +10,12 @@ import SwiftData
 
 struct PlantGridCell: View {
     let plant: Plant
+    
+    @State var isRenaming: Bool = false
+    @State var editedName: String = ""
+    @FocusState private var isTextFieldFocused: Bool
+    
+    var onRename: (String) -> Void
     var onDelete: () -> Void
     
     var body: some View {
@@ -19,8 +25,30 @@ struct PlantGridCell: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(plant.name)
-                    .font(.headline)
+                Group {
+                    if isRenaming {
+                        TextField(plant.species.commonName, text: $editedName)
+                            .submitLabel(.done)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .multilineTextAlignment(.leading)
+                            .focused($isTextFieldFocused)
+                            .onSubmit {
+                                if !editedName.trimmingCharacters(in: .whitespaces).isEmpty {
+                                    onRename(editedName)
+                                }
+                                isRenaming = false
+                            }
+                            .onChange(of: isTextFieldFocused) { oldValue, newValue in
+                                if !newValue && isRenaming {
+                                    // TextField lost focus, exit editing mode
+                                    isRenaming = false
+                                }
+                            }
+                    } else {
+                        Text(plant.name)
+                    }
+                }
+                .font(.headline)
                 
                 Text(plant.species.scientificName)
                     .font(.caption)
@@ -29,10 +57,18 @@ struct PlantGridCell: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
+            Button {
+                editedName = plant.name
+                isRenaming = true
+                isTextFieldFocused = true
+            } label: {
+                Label("Rename", systemImage: "pencil")
+            }
+            Divider()
             Button(role: .destructive) {
                 onDelete()
             } label: {
-                Label("Delete Plant", systemImage: "trash")
+                Label("Delete", systemImage: "trash")
             }
         }
     }
@@ -64,9 +100,15 @@ struct PlantsView : View {
                             NavigationLink {
                                 PlantDetailView(plant: plant)
                             } label: {
-                                PlantGridCell(plant: plant, onDelete: { 
-                                    plantToDelete = plant
-                                })
+                                PlantGridCell(
+                                    plant: plant,
+                                    onRename: { newName in
+                                        renamePlant(plant, to: newName)
+                                    },
+                                    onDelete: {
+                                        plantToDelete = plant
+                                    }
+                                )
                                 .confirmationDialog(
                                     "Delete Plant",
                                     isPresented: Binding(
@@ -115,6 +157,16 @@ struct PlantsView : View {
             try modelContext.save()
         } catch {
             print("Failed to delete plant: \(error)")
+        }
+    }
+    
+    private func renamePlant(_ plant: Plant, to newName: String) {
+        plant.name = newName
+        
+        do {
+            try modelContext.save()
+        } catch {
+            print("Failed to rename plant: \(error)")
         }
     }
 }
