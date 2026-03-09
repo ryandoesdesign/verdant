@@ -44,6 +44,32 @@ struct LightChart: View {
                 )
                 .foregroundStyle(by: .value("Legend", "Healthy range"))
                 
+                RuleMark(
+                    xStart: .value("Start", measurements.min(by: { first, second in first.timestamp < second.timestamp })!.timestamp),
+                    xEnd: .value("End", measurements.max(by: { first, second in first.timestamp < second.timestamp })!.timestamp),
+                    y: .value("Maximum healthy saturation", healthyIntensity.upperBound)
+                )
+                .foregroundStyle(Color.secondary)
+                .lineStyle(StrokeStyle(lineWidth: 1))
+                .annotation {
+                    Text("\(healthyIntensity.upperBound) lux")
+                        .font(Font.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                RuleMark(
+                    xStart: .value("Start", measurements.min(by: { first, second in first.timestamp < second.timestamp })!.timestamp),
+                    xEnd: .value("End", measurements.max(by: { first, second in first.timestamp < second.timestamp })!.timestamp),
+                    y: .value("Mimimum healthy saturation", healthyIntensity.lowerBound)
+                )
+                .foregroundStyle(Color.secondary)
+                .lineStyle(StrokeStyle(lineWidth: 1))
+                .annotation(position: .bottom) {
+                    Text("\(healthyIntensity.lowerBound) lux")
+                        .font(Font.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
                 // Line and points for each measurement
                 ForEach(measurements) { measurement in
                     LineMark(
@@ -57,6 +83,11 @@ struct LightChart: View {
                             x: .value("Time", measurement.timestamp),
                             y: .value("Intensity", measurement.value)
                         )
+                        .annotation {
+                            Text("\(measurement.value) lux")
+                                .font(Font.caption.bold())
+                                .foregroundStyle(Color.accent)
+                        }
                     }
                 }
             }

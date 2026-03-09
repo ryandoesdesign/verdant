@@ -48,6 +48,32 @@ struct SoilMoistureChart: View {
             )
             .foregroundStyle(by: .value("Legend", "Healthy range"))
             
+            RuleMark(
+                xStart: .value("Start", timeRange.lowerBound),
+                xEnd: .value("End", timeRange.upperBound),
+                y: .value("Maximum healthy saturation", healthySaturation.upperBound)
+            )
+            .foregroundStyle(Color.secondary)
+            .lineStyle(StrokeStyle(lineWidth: 1))
+            .annotation {
+                Text("\(healthySaturation.upperBound)%")
+                    .font(Font.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            RuleMark(
+                xStart: .value("Start", timeRange.lowerBound),
+                xEnd: .value("End", timeRange.upperBound),
+                y: .value("Mimimum healthy saturation", healthySaturation.lowerBound)
+            )
+            .foregroundStyle(Color.secondary)
+            .lineStyle(StrokeStyle(lineWidth: 1))
+            .annotation(position: .bottom) {
+                Text("\(healthySaturation.lowerBound)%")
+                    .font(Font.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
             ForEach(currentCycleMeasurements) { measurement in
                 LineMark(
                     x: .value("Time", measurement.timestamp),
@@ -62,12 +88,17 @@ struct SoilMoistureChart: View {
                         x: .value("Time", measurement.timestamp),
                         y: .value("Saturation", measurement.value)
                     )
+                    .annotation {
+                        Text("\(measurement.value)%")
+                            .font(Font.caption.bold())
+                            .foregroundStyle(Color.accent)
+                    }
                 }
             }
         }
         .chartYAxis(.hidden)
         .chartForegroundStyleScale(["Healthy range": Color("HealthyRangeFill")])
-        .frame(maxHeight: 100)
+        .frame(maxHeight: 200)
     }
 }
 
