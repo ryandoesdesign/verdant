@@ -10,6 +10,7 @@ import SwiftData
 
 struct PlantGridCell: View {
     let plant: Plant
+    var onDelete: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -26,12 +27,21 @@ struct PlantGridCell: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Label("Delete Plant", systemImage: "trash")
+            }
+        }
     }
 }
 
 struct PlantsView : View {
     @Query var plants: [Plant]
     @State private var showingAddPlant = false
+    @Environment(\.modelContext) private var modelContext
     
     let columns = [
         GridItem(.flexible(), spacing: 16),
@@ -53,8 +63,7 @@ struct PlantsView : View {
                             NavigationLink {
                                 PlantDetailView(plant: plant)
                             } label: {
-                                PlantGridCell(plant: plant)
-                                    .buttonStyle(.plain)
+                                PlantGridCell(plant: plant, onDelete: { deletePlant(plant) })
                             }
                         }
                     }
@@ -76,6 +85,16 @@ struct PlantsView : View {
             NavigationStack {
                 PickSpeciesView()
             }
+        }
+    }
+    
+    private func deletePlant(_ plant: Plant) {
+        modelContext.delete(plant)
+        
+        do {
+            try modelContext.save()
+        } catch {
+            print("Failed to delete plant: \(error)")
         }
     }
 }
@@ -118,12 +137,18 @@ struct PlantsView : View {
     container.mainContext.insert(plant2)
     container.mainContext.insert(plant3)
     
-    return PlantsView().modelContainer(container)
+    return NavigationStack {
+        PlantsView()
+    }
+    .modelContainer(container)
 }
 #Preview("No Plants") {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: Plant.self, Species.self, configurations: config)
     
-    return PlantsView().modelContainer(container)
+    return NavigationStack {
+        PlantsView()
+    }
+    .modelContainer(container)
 }
 
