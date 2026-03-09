@@ -22,79 +22,80 @@ class LightMeasurement {
 }
 
 struct LightChart: View {
-    let healthyIntensity: ClosedRange<Int>
+    let healthyRange: ClosedRange<Int>
     let measurements: [LightMeasurement]
     
-    var body: some View {
-        if measurements.isEmpty {
-            ContentUnavailableView(
-                "No Measurements Yet",
-                systemImage: "chart.line.uptrend.xyaxis",
-                description: Text("Light intensity data will appear here once measurements begin.")
-            )
-            .background(Color(.systemGray6))
-            .clipShape(RoundedRectangle(cornerRadius: 24))
+    // Default time range for display (24 hours)
+    private var timeRange: ClosedRange<Date> {
+        if let minDate = measurements.min(by: { $0.timestamp < $1.timestamp })?.timestamp,
+           let maxDate = measurements.max(by: { $0.timestamp < $1.timestamp })?.timestamp {
+            return minDate...maxDate
         } else {
-            Chart {
-                RectangleMark(
-                    xStart: .value("Start", measurements.min(by: { first, second in first.timestamp < second.timestamp })!.timestamp),
-                    xEnd: .value("End", measurements.max(by: { first, second in first.timestamp < second.timestamp })!.timestamp),
-                    yStart: .value("Minimum healthy intensity", healthyIntensity.lowerBound),
-                    yEnd: .value("Maximum healthy intensity", healthyIntensity.upperBound)
+            let now = Date()
+            let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: now)!
+            return yesterday...now
+        }
+    }
+    
+    var body: some View {
+        Chart {
+            RectangleMark(
+                xStart: .value("Start", timeRange.lowerBound),
+                xEnd: .value("End", timeRange.upperBound),
+                yStart: .value("Minimum healthy intensity", healthyRange.lowerBound),
+                yEnd: .value("Maximum healthy intensity", healthyRange.upperBound)
+            )
+            .foregroundStyle(by: .value("Legend", "Healthy range"))
+            
+            RuleMark(
+                xStart: .value("Start", timeRange.lowerBound),
+                xEnd: .value("End", timeRange.upperBound),
+                y: .value("Maximum healthy saturation", healthyRange.upperBound)
+            )
+            .foregroundStyle(Color.secondary)
+            .lineStyle(StrokeStyle(lineWidth: 1))
+            .annotation {
+                Text("\(healthyRange.upperBound) lux")
+                    .font(Font.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            RuleMark(
+                xStart: .value("Start", timeRange.lowerBound),
+                xEnd: .value("End", timeRange.upperBound),
+                y: .value("Mimimum healthy saturation", healthyRange.lowerBound)
+            )
+            .foregroundStyle(Color.secondary)
+            .lineStyle(StrokeStyle(lineWidth: 1))
+            .annotation(position: .bottom) {
+                Text("\(healthyRange.lowerBound) lux")
+                    .font(Font.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            // Line and points for each measurement
+            ForEach(measurements) { measurement in
+                LineMark(
+                    x: .value("Time", measurement.timestamp),
+                    y: .value("Intensity", measurement.value)
                 )
-                .foregroundStyle(by: .value("Legend", "Healthy range"))
+                .foregroundStyle(Color.accentColor)
                 
-                RuleMark(
-                    xStart: .value("Start", measurements.min(by: { first, second in first.timestamp < second.timestamp })!.timestamp),
-                    xEnd: .value("End", measurements.max(by: { first, second in first.timestamp < second.timestamp })!.timestamp),
-                    y: .value("Maximum healthy saturation", healthyIntensity.upperBound)
-                )
-                .foregroundStyle(Color.secondary)
-                .lineStyle(StrokeStyle(lineWidth: 1))
-                .annotation {
-                    Text("\(healthyIntensity.upperBound) lux")
-                        .font(Font.caption)
-                        .foregroundStyle(.secondary)
-                }
-                
-                RuleMark(
-                    xStart: .value("Start", measurements.min(by: { first, second in first.timestamp < second.timestamp })!.timestamp),
-                    xEnd: .value("End", measurements.max(by: { first, second in first.timestamp < second.timestamp })!.timestamp),
-                    y: .value("Mimimum healthy saturation", healthyIntensity.lowerBound)
-                )
-                .foregroundStyle(Color.secondary)
-                .lineStyle(StrokeStyle(lineWidth: 1))
-                .annotation(position: .bottom) {
-                    Text("\(healthyIntensity.lowerBound) lux")
-                        .font(Font.caption)
-                        .foregroundStyle(.secondary)
-                }
-                
-                // Line and points for each measurement
-                ForEach(measurements) { measurement in
-                    LineMark(
+                if measurement == measurements.max(by: { first, second in first.timestamp < second.timestamp }) {
+                    PointMark(
                         x: .value("Time", measurement.timestamp),
                         y: .value("Intensity", measurement.value)
                     )
-                    .foregroundStyle(Color.accentColor)
-                    
-                    if measurement == measurements.max(by: { first, second in first.timestamp < second.timestamp }) {
-                        PointMark(
-                            x: .value("Time", measurement.timestamp),
-                            y: .value("Intensity", measurement.value)
-                        )
-                        .annotation {
-                            Text("\(measurement.value) lux")
-                                .font(Font.caption.bold())
-                                .foregroundStyle(Color.accent)
-                        }
+                    .annotation {
+                        Text("\(measurement.value) lux")
+                            .font(Font.caption.bold())
+                            .foregroundStyle(Color.accent)
                     }
                 }
             }
-            .chartYAxis(.hidden)
-            .chartForegroundStyleScale(["Healthy range": Color("HealthyRangeFill")])
-            .frame(maxHeight: 100)
         }
+        .chartYAxis(.hidden)
+        .chartForegroundStyleScale(["Healthy range": Color("HealthyRangeFill")])
     }
 }
 
@@ -124,7 +125,7 @@ struct LightChart: View {
     let healthyLightIntensity = 1500...6000
     
     LightChart(
-        healthyIntensity: healthyLightIntensity,
+        healthyRange: healthyLightIntensity,
         measurements: lightMeasurements
     )
     .padding()
@@ -133,7 +134,7 @@ struct LightChart: View {
     let healthyLightIntensity = 1500...6000
     
     LightChart(
-        healthyIntensity: healthyLightIntensity,
+        healthyRange: healthyLightIntensity,
         measurements: []
     )
     .padding()

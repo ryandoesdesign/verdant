@@ -28,9 +28,10 @@ struct PlantDetailView: View {
                     .fontWeight(.semibold)
                     
                     SoilMoistureChart(
-                        healthySaturation: plant.species.healthySoilMoistureRange,
+                        healthyRange: plant.species.healthySoilMoistureRange,
                         currentCycleMeasurements: plant.soilMoistureMeasurements
                     )
+                    .frame(minHeight: 200)
                     
                 }
                 
@@ -43,10 +44,10 @@ struct PlantDetailView: View {
                     .fontWeight(.semibold)
                     
                     LightChart(
-                        healthyIntensity: plant.species.healthyLightRange,
+                        healthyRange: plant.species.healthyLightRange,
                         measurements: plant.lightMeasurements
                     )
-                    
+                    .frame(minHeight: 200)
                 }
             }
             .padding(.horizontal, 16)

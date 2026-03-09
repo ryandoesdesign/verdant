@@ -22,7 +22,7 @@ class SoilMoistureMeasurement {
 }
 
 struct SoilMoistureChart: View {
-    let healthySaturation: ClosedRange<Int>
+    let healthyRange: ClosedRange<Int>
     let currentCycleMeasurements: [SoilMoistureMeasurement]
     
     // Default time range for display (24 hours)
@@ -43,20 +43,20 @@ struct SoilMoistureChart: View {
             RectangleMark(
                 xStart: .value("Start", timeRange.lowerBound),
                 xEnd: .value("End", timeRange.upperBound),
-                yStart: .value("Minimum healthy saturation", healthySaturation.lowerBound),
-                yEnd: .value("Maximum healthy saturation", healthySaturation.upperBound)
+                yStart: .value("Minimum healthy saturation", healthyRange.lowerBound),
+                yEnd: .value("Maximum healthy saturation", healthyRange.upperBound)
             )
             .foregroundStyle(by: .value("Legend", "Healthy range"))
             
             RuleMark(
                 xStart: .value("Start", timeRange.lowerBound),
                 xEnd: .value("End", timeRange.upperBound),
-                y: .value("Maximum healthy saturation", healthySaturation.upperBound)
+                y: .value("Maximum healthy saturation", healthyRange.upperBound)
             )
             .foregroundStyle(Color.secondary)
             .lineStyle(StrokeStyle(lineWidth: 1))
             .annotation {
-                Text("\(healthySaturation.upperBound)%")
+                Text("\(healthyRange.upperBound)%")
                     .font(Font.caption)
                     .foregroundStyle(.secondary)
             }
@@ -64,12 +64,12 @@ struct SoilMoistureChart: View {
             RuleMark(
                 xStart: .value("Start", timeRange.lowerBound),
                 xEnd: .value("End", timeRange.upperBound),
-                y: .value("Mimimum healthy saturation", healthySaturation.lowerBound)
+                y: .value("Mimimum healthy saturation", healthyRange.lowerBound)
             )
             .foregroundStyle(Color.secondary)
             .lineStyle(StrokeStyle(lineWidth: 1))
             .annotation(position: .bottom) {
-                Text("\(healthySaturation.lowerBound)%")
+                Text("\(healthyRange.lowerBound)%")
                     .font(Font.caption)
                     .foregroundStyle(.secondary)
             }
@@ -98,7 +98,6 @@ struct SoilMoistureChart: View {
         }
         .chartYAxis(.hidden)
         .chartForegroundStyleScale(["Healthy range": Color("HealthyRangeFill")])
-        .frame(maxHeight: 200)
     }
 }
 
@@ -110,7 +109,7 @@ struct SoilMoistureChart: View {
     let healthySaturation = 30...70
     
     SoilMoistureChart(
-        healthySaturation: healthySaturation,
+        healthyRange: healthySaturation,
         currentCycleMeasurements: moistureMeasurements
     )
     .padding()
@@ -120,7 +119,7 @@ struct SoilMoistureChart: View {
     let healthySaturation = 30...70
     
     SoilMoistureChart(
-        healthySaturation: healthySaturation,
+        healthyRange: healthySaturation,
         currentCycleMeasurements: []
     )
     .padding()
