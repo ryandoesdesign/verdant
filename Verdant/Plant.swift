@@ -53,8 +53,9 @@ class Plant {
     @Attribute(.externalStorage)
     var image: Data? = nil
     
-    init(name: String, species: Species) {
+    init(name: String, species: Species, image: Data? = nil) {
         self.name = name
         self.species = species
+        self.image = image
     }
 }

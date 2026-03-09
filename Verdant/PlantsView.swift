@@ -64,7 +64,16 @@ struct PlantsView : View {
         }
         .navigationTitle(Text("Plants"))
         .toolbar {
-            
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showingAddPlant = true
+                } label: {
+                    Label("Add Plant", systemImage: "plus")
+                }
+            }
+        }
+        .sheet(isPresented: $showingAddPlant) {
+            AddPlantView()
         }
     }
 }
@@ -73,7 +82,6 @@ struct PlantsView : View {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: Plant.self, Species.self, configurations: config)
     
-    // Create sample species
     let monsteraSpecies = Species(
         scientificName: "Monstera deliciosa",
         healthySoilMoistureRange: 40...60,
@@ -98,30 +106,22 @@ struct PlantsView : View {
         healthyHumidityRange: 50...70
     )
     
-    let plant1 = Plant(name: "Swiss Cheese Plant", species: monsteraSpecies)
-    plant1.image = UIImage(named: "Monstera")?.jpegData(compressionQuality: 0.8)
+    let plant1 = Plant(name: "Swiss Cheese Plant", species: monsteraSpecies, image: UIImage(named: "Monstera")?.jpegData(compressionQuality: 0.8))
     
-    let plant2 = Plant(name: "Fiddle Leaf Fig", species: ficusSpecies)
-    plant2.image = UIImage(named: "CreepingFig")?.jpegData(compressionQuality: 0.8)
+    let plant2 = Plant(name: "Fiddle Leaf Fig", species: ficusSpecies, image: UIImage(named: "CreepingFig")?.jpegData(compressionQuality: 0.8))
     
-    let plant3 = Plant(name: "Golden Pothos", species: pothosSpecies)
-    plant3.image = UIImage(named: "Peperomia")?.jpegData(compressionQuality: 0.8)
+    let plant3 = Plant(name: "Golden Pothos", species: pothosSpecies, image: UIImage(named: "Peperomia")?.jpegData(compressionQuality: 0.8))
     
-    // Insert into container
     container.mainContext.insert(plant1)
     container.mainContext.insert(plant2)
     container.mainContext.insert(plant3)
     
-    return PlantsView()
-        .modelContainer(container)
+    return PlantsView().modelContainer(container)
 }
 #Preview("No Plants") {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: Plant.self, Species.self, configurations: config)
     
-    // Don't insert any plants - empty state
-    
-    return PlantsView()
-        .modelContainer(container)
+    return PlantsView().modelContainer(container)
 }
 
