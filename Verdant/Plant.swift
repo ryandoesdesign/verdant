@@ -53,6 +53,9 @@ class Plant {
     @Attribute(.externalStorage)
     var image: Data? = nil
     
+    // HomeKit accessory unique identifier
+    var sensorIdentifier: UUID? = nil
+    
     init(name: String, species: Species, image: Data? = nil) {
         self.name = name
         self.species = species

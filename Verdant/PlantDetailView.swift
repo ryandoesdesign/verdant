@@ -13,11 +13,18 @@ import Charts
 struct PlantDetailView: View {
     let plant: Plant
     
+    @State private var isPairingSensorPresented = false
+    
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(alignment: .leading, spacing: 24) {
                 PlantImage(data: plant.image)
                     .frame(height: 187)
+                
+                if let sensorId = plant.sensorIdentifier {
+                    Text("Paired: \(sensorId)")
+                        .font(.caption)
+                }
                 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 8) {
@@ -54,6 +61,21 @@ struct PlantDetailView: View {
         }
         .navigationTitle(plant.name)
         .navigationSubtitle(plant.species.scientificName)
+        .sheet(isPresented: $isPairingSensorPresented) {
+            NavigationStack {
+                PairSensorView(plant: plant)
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isPairingSensorPresented = true
+                } label: {
+                    Label("Pair with Sensor", systemImage: "sensor")
+                }
+            }
+        }
+        
     }
 }
 
