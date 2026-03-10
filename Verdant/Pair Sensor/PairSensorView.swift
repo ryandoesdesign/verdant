@@ -26,13 +26,11 @@ struct PairSensorView: View {
     @State private var coordinator = HomeKitCoordinator()
     @State private var isLoading = true
     
-    // Set to true for testing UI without real HomeKit accessories
-    private let useMockData = false
-    
     @State private var selectedSensor: HMAccessory? = nil
     
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(SensorMonitor.self) private var sensorMonitor
     
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -91,15 +89,7 @@ struct PairSensorView: View {
             
             Spacer()
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 16)
         .onAppear {
-            if useMockData {
-                // For testing UI without real HomeKit
-                isLoading = false
-                return
-            }
-            
             // Set up the coordinator callback
             coordinator.onHomesDidUpdate = {
                 discoverAccessories()
@@ -181,5 +171,10 @@ struct PairSensorView: View {
         
         // Save the context
         try? modelContext.save()
+        
+        // Restart monitoring to include the newly paired sensor
+        Task { @MainActor in
+            sensorMonitor.startMonitoring()
+        }
     }
 }

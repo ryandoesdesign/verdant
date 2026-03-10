@@ -11,6 +11,7 @@ import SwiftData
 @main
 struct VerdantApp: App {
     let modelContainer: ModelContainer
+    @State private var sensorMonitor: SensorMonitor?
     
     init() {
         do {
@@ -27,6 +28,13 @@ struct VerdantApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onAppear {
+                    // Initialize sensor monitor when the app appears
+                    if sensorMonitor == nil {
+                        sensorMonitor = SensorMonitor(modelContainer: modelContainer)
+                    }
+                }
+                .environment(sensorMonitor)
         }
         .modelContainer(modelContainer)
     }
