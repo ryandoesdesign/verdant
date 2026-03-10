@@ -52,12 +52,11 @@ struct LightChart: View {
                 xEnd: .value("End", timeRange.upperBound),
                 y: .value("Maximum healthy saturation", healthyRange.upperBound)
             )
-            .foregroundStyle(Color.secondary)
-            .lineStyle(StrokeStyle(lineWidth: 1))
+            .foregroundStyle(.clear)
             .annotation {
                 Text("\(healthyRange.upperBound) lux")
                     .font(Font.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.tertiary)
             }
             
             RuleMark(
@@ -65,12 +64,11 @@ struct LightChart: View {
                 xEnd: .value("End", timeRange.upperBound),
                 y: .value("Mimimum healthy saturation", healthyRange.lowerBound)
             )
-            .foregroundStyle(Color.secondary)
-            .lineStyle(StrokeStyle(lineWidth: 1))
+            .foregroundStyle(.clear)
             .annotation(position: .bottom) {
                 Text("\(healthyRange.lowerBound) lux")
                     .font(Font.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.tertiary)
             }
             
             // Line and points for each measurement
