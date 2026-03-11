@@ -99,18 +99,6 @@ struct PlantDetailView: View {
                     Label("Pair with Sensor", systemImage: "sensor")
                 }
             }
-            
-            if plant.sensorIdentifier != nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task { @MainActor in
-                            sensorMonitor.updateAllMeasurements()
-                        }
-                    } label: {
-                        Label("Refresh Data", systemImage: "arrow.clockwise")
-                    }
-                }
-            }
         }
         
     }

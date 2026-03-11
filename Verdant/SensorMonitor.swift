@@ -10,23 +10,6 @@ import HomeKit
 import SwiftData
 import Observation
 
-// MARK: - HomeKit Async Extensions
-
-extension HMCharacteristic {
-    /// Async wrapper for reading characteristic values
-    func readValueAsync() async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            self.readValue { error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume(returning: ())
-                }
-            }
-        }
-    }
-}
-
 // MARK: - Sensor Monitor
 
 /// Monitors HomeKit sensors and updates plant measurements in SwiftData
@@ -34,26 +17,18 @@ extension HMCharacteristic {
 /// This class manages the lifecycle of sensor monitoring:
 /// 1. Discovers HomeKit accessories paired with plants
 /// 2. Enables notifications for sensor characteristics (humidity, temperature, light)
-/// 3. Periodically reads sensor values (every 5 minutes by default)
-/// 4. Immediately updates when sensors send notifications
-/// 5. Saves measurements to SwiftData for each plant
+/// 3. Immediately updates when sensors send notifications via push
+/// 4. Saves measurements to SwiftData for each plant
 ///
 /// Usage:
 /// - Initialize once in VerdantApp with the model container
 /// - Access via @Environment in views
 /// - Call `startMonitoring()` after pairing new sensors
-/// - Call `updateAllMeasurements()` to manually refresh
 @Observable
 class SensorMonitor: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate {
     private let homeManager = HMHomeManager()
     private let modelContainer: ModelContainer
     private var monitoredAccessories: Set<UUID> = []
-    
-    // Track periodic monitoring task
-    private var monitoringTask: Task<Void, Never>?
-    
-    // Update interval (e.g., every 5 minutes)
-    private let updateInterval: Duration = .seconds(300)
     
     init(modelContainer: ModelContainer) {
         self.modelContainer = modelContainer
@@ -100,24 +75,11 @@ class SensorMonitor: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate {
             }
         }
         
-        // Initial update
-        // updateAllMeasurements()
-        
-        // Set up periodic updates using Swift Concurrency
-        monitoringTask?.cancel()
-        monitoringTask = Task { @MainActor in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: updateInterval)
-                guard !Task.isCancelled else { break }
-                updateAllMeasurements()
-            }
-        }
+        // Relying solely on HomeKit push notifications via enableNotification
     }
     
     func stopMonitoring() {
         print("🛑 Stopping sensor monitoring...")
-        monitoringTask?.cancel()
-        monitoringTask = nil
         monitoredAccessories.removeAll()
     }
     
@@ -174,77 +136,7 @@ class SensorMonitor: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate {
         return plant
     }
     
-    @MainActor
-    func updateAllMeasurements() {
-        print("📊 Updating measurements...")
-        
-        let context = modelContainer.mainContext
-        let descriptor = FetchDescriptor<Plant>()
-        
-        guard let plants = try? context.fetch(descriptor) else {
-            print("⚠️ Failed to fetch plants for measurement update")
-            return
-        }
-        
-        guard let home = homeManager.homes.first else {
-            print("⚠️ No HomeKit home available")
-            return
-        }
-        
-        for plant in plants {
-            guard let sensorId = plant.sensorIdentifier else { continue }
-            guard let accessory = home.accessories.first(where: { $0.uniqueIdentifier == sensorId }) else {
-                print("⚠️ Accessory not found for plant: \(plant.name)")
-                continue
-            }
-            
-            Task {
-                await updateMeasurements(for: plant.persistentModelID, from: accessory)
-            }
-        }
-    }
-    
-    @MainActor
-    private func updateMeasurements(for plantID: PersistentIdentifier, from accessory: HMAccessory) async {
-        let timestamp = Date()
-        
-        // Get all characteristics we care about
-        let characteristics = accessory.services
-            .flatMap { $0.characteristics }
-            .filter { shouldMonitor(characteristic: $0) }
-        
-        // Read all characteristics concurrently
-        await withTaskGroup(of: Void.self) { group in
-            for characteristic in characteristics {
-                group.addTask {
-                    do {
-                        try await characteristic.readValueAsync()
-                        
-                        await MainActor.run {
-                            let context = self.modelContainer.mainContext
-                            guard let plant = context.model(for: plantID) as? Plant else {
-                                print("⚠️ Failed to refetch plant")
-                                return
-                            }
-                            
-                            self.processCharacteristic(
-                                characteristic,
-                                for: plant,
-                                timestamp: timestamp,
-                                context: context
-                            )
-                            
-                            // Save after processing each characteristic
-                            try? context.save()
-                        }
-                    } catch {
-                        print("⚠️ Failed to read characteristic: \(error)")
-                    }
-                }
-            }
-        }
-    }
-    
+
     @MainActor
     private func processCharacteristic(
         _ characteristic: HMCharacteristic,
