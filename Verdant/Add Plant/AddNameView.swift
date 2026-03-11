@@ -56,7 +56,8 @@ struct AddNameView : View {
         .padding()
         
         NavigationLink {
-            AddPhotoView(name: name, species: species)
+            let trimmedName = name.trimmingCharacters(in: .whitespaces)
+            AddPhotoView(name: trimmedName, species: species)
                 .environment(\.dismissSheet, dismissSheet)
         } label: {
             Text("Continue")

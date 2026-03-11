@@ -150,7 +150,7 @@ class SensorMonitor: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate {
             case HMCharacteristicTypeCurrentRelativeHumidity:
                 if let humidity = value as? Double {
                     let measurement = SoilMoistureMeasurement(
-                        value: Int(humidity),
+                        value: Int(humidity.rounded()),
                         timestamp: timestamp
                     )
                     plant.soilMoistureMeasurements.append(measurement)

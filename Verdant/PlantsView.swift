@@ -33,8 +33,9 @@ struct PlantGridCell: View {
                             .multilineTextAlignment(.leading)
                             .focused($isTextFieldFocused)
                             .onSubmit {
-                                if !editedName.trimmingCharacters(in: .whitespaces).isEmpty {
-                                    onRename(editedName)
+                                let trimmedEditedName = editedName.trimmingCharacters(in: .whitespaces)
+                                if !trimmedEditedName.isEmpty {
+                                    onRename(trimmedEditedName)
                                 }
                                 isRenaming = false
                             }
