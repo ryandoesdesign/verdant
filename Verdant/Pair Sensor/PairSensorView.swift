@@ -89,6 +89,7 @@ struct PairSensorView: View {
             
             Spacer()
         }
+        .padding()
         .onAppear {
             // Set up the coordinator callback
             coordinator.onHomesDidUpdate = {

@@ -38,21 +38,34 @@ struct PlantDetailView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
                 
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "drop.fill")
-                        Text("Soil Moisture")
-                    }
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    
-                    SoilMoistureChart(
-                        healthyRange: plant.species.healthySoilMoistureRange,
-                        currentCycleMeasurements: plant.soilMoistureMeasurements
+                NavigationLink {
+                    SampleListView(
+                        samples: plant.soilMoistureMeasurements,
+                        plantName: plant.name
                     )
-                    .frame(minHeight: 200)
-                    
+                } label: {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "drop.fill")
+                            Text("Soil Moisture")
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.forward")
+                                .foregroundStyle(.secondary)
+                        }
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        
+                        SoilMoistureChart(
+                            healthyRange: plant.species.healthySoilMoistureRange,
+                            currentCycleMeasurements: plant.soilMoistureMeasurements
+                        )
+                        .frame(minHeight: 200)
+                        
+                    }
                 }
+                .buttonStyle(.plain)
                 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 8) {

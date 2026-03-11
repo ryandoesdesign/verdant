@@ -10,6 +10,25 @@ import HomeKit
 import SwiftData
 import Observation
 
+// MARK: - HomeKit Async Extensions
+
+extension HMCharacteristic {
+    /// Async wrapper for reading characteristic values
+    func readValueAsync() async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            self.readValue { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: ())
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Sensor Monitor
+
 /// Monitors HomeKit sensors and updates plant measurements in SwiftData
 ///
 /// This class manages the lifecycle of sensor monitoring:
@@ -30,11 +49,11 @@ class SensorMonitor: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate {
     private let modelContainer: ModelContainer
     private var monitoredAccessories: Set<UUID> = []
     
-    // Track timer for periodic updates
-    private var updateTimer: Timer?
+    // Track periodic monitoring task
+    private var monitoringTask: Task<Void, Never>?
     
     // Update interval (e.g., every 5 minutes)
-    private let updateInterval: TimeInterval = 300 // 5 minutes
+    private let updateInterval: Duration = .seconds(300)
     
     init(modelContainer: ModelContainer) {
         self.modelContainer = modelContainer
@@ -82,25 +101,23 @@ class SensorMonitor: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate {
         }
         
         // Initial update
-        updateAllMeasurements()
+        // updateAllMeasurements()
         
-        // Set up periodic updates
-        updateTimer?.invalidate()
-        updateTimer = Timer.scheduledTimer(
-            withTimeInterval: updateInterval,
-            repeats: true
-        ) { [weak self] _ in
-            guard let self else { return }
-            Task { @MainActor in
-                self.updateAllMeasurements()
+        // Set up periodic updates using Swift Concurrency
+        monitoringTask?.cancel()
+        monitoringTask = Task { @MainActor in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: updateInterval)
+                guard !Task.isCancelled else { break }
+                updateAllMeasurements()
             }
         }
     }
     
     func stopMonitoring() {
         print("🛑 Stopping sensor monitoring...")
-        updateTimer?.invalidate()
-        updateTimer = nil
+        monitoringTask?.cancel()
+        monitoringTask = nil
         monitoredAccessories.removeAll()
     }
     
@@ -133,14 +150,29 @@ class SensorMonitor: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate {
     }
     
     private func shouldMonitor(characteristic: HMCharacteristic) -> Bool {
-        // Monitor humidity, temperature, and light sensors
+        // Monitor only humidity (soil moisture proxy) and temperature
         return characteristic.characteristicType == HMCharacteristicTypeCurrentRelativeHumidity ||
-               characteristic.characteristicType == HMCharacteristicTypeCurrentTemperature ||
-               characteristic.metadata?.format == HMCharacteristicMetadataFormatInt ||
-               characteristic.metadata?.format == HMCharacteristicMetadataFormatFloat
+               characteristic.characteristicType == HMCharacteristicTypeCurrentTemperature
     }
     
     // MARK: - Measurement Updates
+    
+    @MainActor
+    private func fetchPlant(with sensorId: UUID) -> Plant? {
+        let context = modelContainer.mainContext
+        let descriptor = FetchDescriptor<Plant>(
+            predicate: #Predicate { plant in
+                plant.sensorIdentifier == sensorId
+            }
+        )
+        
+        guard let plants = try? context.fetch(descriptor),
+              let plant = plants.first else {
+            return nil
+        }
+        
+        return plant
+    }
     
     @MainActor
     func updateAllMeasurements() {
@@ -166,50 +198,47 @@ class SensorMonitor: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate {
                 continue
             }
             
-            updateMeasurements(for: plant, from: accessory, context: context)
-        }
-        
-        // Save all changes
-        do {
-            try context.save()
-            print("✅ Measurements saved successfully")
-        } catch {
-            print("❌ Failed to save measurements: \(error)")
+            Task {
+                await updateMeasurements(for: plant.persistentModelID, from: accessory)
+            }
         }
     }
     
     @MainActor
-    func updateMeasurements(for plant: Plant, from accessory: HMAccessory, context: ModelContext) {
+    private func updateMeasurements(for plantID: PersistentIdentifier, from accessory: HMAccessory) async {
         let timestamp = Date()
-        let plantID = plant.persistentModelID
         
-        for service in accessory.services {
-            for characteristic in service.characteristics {
-                // Read the current value
-                characteristic.readValue { [weak self] error in
-                    guard let self else { return }
-                    
-                    if let error = error {
-                        print("⚠️ Failed to read characteristic: \(error)")
-                        return
-                    }
-                    
-                    Task { @MainActor in
-                        // Get the main context without capturing the parameter
-                        let context = self.modelContainer.mainContext
+        // Get all characteristics we care about
+        let characteristics = accessory.services
+            .flatMap { $0.characteristics }
+            .filter { shouldMonitor(characteristic: $0) }
+        
+        // Read all characteristics concurrently
+        await withTaskGroup(of: Void.self) { group in
+            for characteristic in characteristics {
+                group.addTask {
+                    do {
+                        try await characteristic.readValueAsync()
                         
-                        // Refetch the plant using its ID to avoid capturing non-Sendable type
-                        guard let plant = context.model(for: plantID) as? Plant else {
-                            print("⚠️ Failed to refetch plant")
-                            return
+                        await MainActor.run {
+                            let context = self.modelContainer.mainContext
+                            guard let plant = context.model(for: plantID) as? Plant else {
+                                print("⚠️ Failed to refetch plant")
+                                return
+                            }
+                            
+                            self.processCharacteristic(
+                                characteristic,
+                                for: plant,
+                                timestamp: timestamp,
+                                context: context
+                            )
+                            
+                            // Save after processing each characteristic
+                            try? context.save()
                         }
-                        
-                        self.processCharacteristic(
-                            characteristic,
-                            for: plant,
-                            timestamp: timestamp,
-                            context: context
-                        )
+                    } catch {
+                        print("⚠️ Failed to read characteristic: \(error)")
                     }
                 }
             }
@@ -226,41 +255,19 @@ class SensorMonitor: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate {
         guard let value = characteristic.value else { return }
         
         switch characteristic.characteristicType {
-        case HMCharacteristicTypeCurrentRelativeHumidity:
-            // Humidity is typically used as a proxy for soil moisture in plant sensors
-            if let humidity = value as? Double {
-                let measurement = SoilMoistureMeasurement(
-                    value: Int(humidity),
-                    timestamp: timestamp
-                )
-                plant.soilMoistureMeasurements.append(measurement)
-                print("💧 Added soil moisture: \(Int(humidity))% for \(plant.name)")
-            }
-            
-        case HMCharacteristicTypeCurrentTemperature:
-            // You could add temperature tracking here if needed
-            if let temp = value as? Double {
-                print("🌡️ Temperature: \(temp)°C for \(plant.name)")
-            }
-            
-        default:
-            // Check if this might be a light sensor (lux values)
-            // Many HomeKit light sensors report as custom characteristics
-            if let lightValue = value as? Int, lightValue > 0 && lightValue < 100000 {
-                let measurement = LightMeasurement(
-                    value: lightValue,
-                    timestamp: timestamp
-                )
-                plant.lightMeasurements.append(measurement)
-                print("☀️ Added light: \(lightValue) lux for \(plant.name)")
-            } else if let lightValue = value as? Double, lightValue > 0 && lightValue < 100000 {
-                let measurement = LightMeasurement(
-                    value: Int(lightValue),
-                    timestamp: timestamp
-                )
-                plant.lightMeasurements.append(measurement)
-                print("☀️ Added light: \(Int(lightValue)) lux for \(plant.name)")
-            }
+            case HMCharacteristicTypeCurrentRelativeHumidity:
+                if let humidity = value as? Double {
+                    let measurement = SoilMoistureMeasurement(
+                        value: Int(humidity),
+                        timestamp: timestamp
+                    )
+                    plant.soilMoistureMeasurements.append(measurement)
+                    print("[\(timestamp.formatted(date: .abbreviated, time: .complete))] 􀠒 \(plant.name): \(Int(humidity.rounded()))%")
+                }
+            break
+            default:
+                print("[\(timestamp.formatted(date: .abbreviated, time: .complete))] 􂞷 \(plant.name): \(characteristic.characteristicType) not recorded")
+            break
         }
     }
     
@@ -276,25 +283,18 @@ class SensorMonitor: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate {
     // MARK: - HMAccessoryDelegate
     
     func accessory(_ accessory: HMAccessory, service: HMService, didUpdateValueFor characteristic: HMCharacteristic) {
-        print("🔔 Characteristic updated: \(characteristic.localizedDescription) = \(characteristic.value ?? "nil")")
+        let timestamp = Date()
+        
+        print("[\(timestamp.formatted(date: .abbreviated, time: .complete))] 􁔊 \(accessory.uniqueIdentifier): \(characteristic.localizedDescription) = \(characteristic.value ?? "—")")
         
         // When a characteristic updates, immediately save the new measurement
         Task { @MainActor in
-            let context = modelContainer.mainContext
-            let accessoryId = accessory.uniqueIdentifier
-            let descriptor = FetchDescriptor<Plant>(
-                predicate: #Predicate { plant in
-                    plant.sensorIdentifier == accessoryId
-                }
-            )
-            
-            guard let plants = try? context.fetch(descriptor),
-                  let plant = plants.first else {
-                print("⚠️ No plant found for accessory: \(accessory.name)")
+            guard let plant = fetchPlant(with: accessory.uniqueIdentifier) else {
+                print("No plant found for accessory: \(accessory.name)")
                 return
             }
             
-            let timestamp = Date()
+            let context = modelContainer.mainContext
             processCharacteristic(characteristic, for: plant, timestamp: timestamp, context: context)
             
             // Save immediately
