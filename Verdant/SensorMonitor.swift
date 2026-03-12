@@ -9,6 +9,7 @@ import Foundation
 import HomeKit
 import SwiftData
 import Observation
+import UserNotifications
 
 // MARK: - Sensor Monitor
 
@@ -19,6 +20,7 @@ import Observation
 /// 2. Enables notifications for sensor characteristics (humidity, temperature, light)
 /// 3. Immediately updates when sensors send notifications via push
 /// 4. Saves measurements to SwiftData for each plant
+/// 5. Tracks sensor connection status and notifies users of persistent issues
 ///
 /// Usage:
 /// - Initialize once in VerdantApp with the model container
@@ -29,17 +31,31 @@ class SensorMonitor: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate {
     private let homeManager = HMHomeManager()
     private let modelContainer: ModelContainer
     private var monitoredAccessories: Set<UUID> = []
+    private var isHomeKitReady = false
+    
+    // Track when sensors were first reported as missing
+    private var sensorIssueTimestamps: [UUID: Date] = [:]
+    
+    // Time threshold for persistent issue notifications (24 hours)
+    private let persistentIssueThreshold: TimeInterval = 24 * 60 * 60
     
     init(modelContainer: ModelContainer) {
         self.modelContainer = modelContainer
         super.init()
         
         homeManager.delegate = self
-        
-        // Start monitoring after a short delay to ensure HomeKit is ready
+        requestNotificationAuthorization()
+    }
+    
+    // MARK: - Notification Authorization
+    
+    private func requestNotificationAuthorization() {
         Task {
-            try? await Task.sleep(for: .seconds(1))
-            await startMonitoring()
+            do {
+                try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+            } catch {
+                print("􀙭 Failed to request notification authorization: \(error)")
+            }
         }
     }
     
@@ -47,39 +63,108 @@ class SensorMonitor: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate {
     
     @MainActor
     func startMonitoring() {
-        print("🔍 Starting sensor monitoring...")
+        guard isHomeKitReady else {
+            return
+        }
         
-        // Fetch all plants with paired sensors
         let context = modelContainer.mainContext
-        let descriptor = FetchDescriptor<Plant>()
+        let descriptor = FetchDescriptor<Plant>(
+            predicate: #Predicate { plant in
+                plant.sensorIdentifier != nil
+            }
+        )
         
         guard let plants = try? context.fetch(descriptor) else {
-            print("⚠️ Failed to fetch plants")
+            print("􀇿 Failed to fetch plants")
             return
         }
         
-        // Collect all sensor identifiers
-        let pairedSensorIds = plants.compactMap { $0.sensorIdentifier }
+        let pairedSensorIds = plants.compactMap(\.sensorIdentifier)
         
-        print("📱 Found \(pairedSensorIds.count) paired sensors")
+        print("􁔊 \(pairedSensorIds.count) paired sensors")
         
-        // Find and monitor accessories
-        guard let home = homeManager.homes.first else {
-            print("⚠️ No HomeKit home available")
-            return
-        }
-        
+        let allAccessories = homeManager.homes.flatMap { $0.accessories }
+
         for sensorId in pairedSensorIds {
-            if let accessory = home.accessories.first(where: { $0.uniqueIdentifier == sensorId }) {
+            if let accessory = allAccessories.first(where: { $0.uniqueIdentifier == sensorId }) {
                 startMonitoring(accessory: accessory)
+                // Check actual reachability, not just existence
+                let status: SensorStatus = accessory.isReachable ? .connected : .notResponding
+                updateSensorStatus(sensorId: sensorId, status: status)
+                
+                if !accessory.isReachable {
+                    checkForPersistentIssue(sensorId: sensorId)
+                    print("􀙥 Sensor \(sensorId) found but not responding")
+                }
+            } else {
+                // Update status silently - let UI show the state
+                updateSensorStatus(sensorId: sensorId, status: .notFound)
+                checkForPersistentIssue(sensorId: sensorId)
+                print("􀙥 Sensor \(sensorId) not found")
             }
         }
+    }
+    
+    @MainActor
+    private func updateSensorStatus(sensorId: UUID, status: SensorStatus) {
+        guard let plant = fetchPlant(with: sensorId) else { return }
         
-        // Relying solely on HomeKit push notifications via enableNotification
+        plant.sensorStatus = status
+        
+        if status == .connected {
+            plant.lastSuccessfulConnection = Date()
+            // Clear issue timestamp when resolved
+            sensorIssueTimestamps.removeValue(forKey: sensorId)
+        }
+        
+        // Save the status update
+        try? modelContainer.mainContext.save()
+    }
+    
+    @MainActor
+    private func checkForPersistentIssue(sensorId: UUID) {
+        guard let plant = fetchPlant(with: sensorId) else { return }
+        
+        let now = Date()
+        
+        // Track when this issue was first detected
+        if sensorIssueTimestamps[sensorId] == nil {
+            sensorIssueTimestamps[sensorId] = now
+        }
+        
+        // Check if issue has persisted beyond threshold
+        if let issueStartTime = sensorIssueTimestamps[sensorId],
+           now.timeIntervalSince(issueStartTime) > persistentIssueThreshold {
+            // Notify user of persistent issue
+            Task {
+                await notifyUserOfPersistentIssue(plantName: plant.name, sensorId: sensorId)
+            }
+        }
+    }
+    
+    private func notifyUserOfPersistentIssue(plantName: String, sensorId: UUID) async {
+        let content = UNMutableNotificationContent()
+        content.title = "Sensor Disconnected"
+        content.body = "\(plantName)'s sensor hasn't been found for 24 hours. Check your Home app to ensure it's powered on and connected."
+        content.sound = .default
+        content.categoryIdentifier = "SENSOR_ISSUE"
+        content.userInfo = ["sensorId": sensorId.uuidString, "plantName": plantName]
+        
+        let request = UNNotificationRequest(
+            identifier: "sensor-issue-\(sensorId.uuidString)",
+            content: content,
+            trigger: nil
+        )
+        
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            print("􀑐 Sent persistent issue notification for \(plantName)")
+        } catch {
+            print("􀙭 Failed to send notification: \(error)")
+        }
     }
     
     func stopMonitoring() {
-        print("🛑 Stopping sensor monitoring...")
         monitoredAccessories.removeAll()
     }
     
@@ -99,16 +184,12 @@ class SensorMonitor: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate {
                 if shouldMonitor(characteristic: characteristic) {
                     characteristic.enableNotification(true) { error in
                         if let error = error {
-                            print("⚠️ Failed to enable notifications for \(characteristic.localizedDescription): \(error)")
-                        } else {
-                            print("✅ Enabled notifications for \(characteristic.localizedDescription)")
+                            print("􀇿 Failed to enable notifications for \(characteristic.localizedDescription): \(error)")
                         }
                     }
                 }
             }
         }
-        
-        print("✅ Started monitoring accessory: \(accessory.name)")
     }
     
     private func shouldMonitor(characteristic: HMCharacteristic) -> Bool {
@@ -166,7 +247,8 @@ class SensorMonitor: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate {
     // MARK: - HMHomeManagerDelegate
     
     func homeManagerDidUpdateHomes(_ manager: HMHomeManager) {
-        print("🏠 HomeKit homes updated")
+        isHomeKitReady = true
+        
         Task { @MainActor in
             startMonitoring()
         }
@@ -195,6 +277,13 @@ class SensorMonitor: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate {
     }
     
     func accessoryDidUpdateReachability(_ accessory: HMAccessory) {
-        print("📡 Accessory reachability changed: \(accessory.name) - reachable: \(accessory.isReachable)")
+        Task { @MainActor in
+            let newStatus: SensorStatus = accessory.isReachable ? .connected : .notResponding
+            updateSensorStatus(sensorId: accessory.uniqueIdentifier, status: newStatus)
+            
+            if !accessory.isReachable {
+                checkForPersistentIssue(sensorId: accessory.uniqueIdentifier)
+            }
+        }
     }
 }

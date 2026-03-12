@@ -8,6 +8,38 @@
 import Foundation
 import SwiftData
 
+// MARK: - Sensor Status
+
+enum SensorStatus: String, Codable {
+    case connected
+    case notResponding
+    case notFound
+    
+    var displayName: String {
+        switch self {
+        case .connected: return "Connected"
+        case .notResponding: return "Not Responding"
+        case .notFound: return "Not Found"
+        }
+    }
+    
+    var systemImage: String {
+        switch self {
+        case .connected: return "checkmark.circle.fill"
+        case .notResponding: return "exclamationmark.triangle.fill"
+        case .notFound: return "exclamationmark.triangle.fill"
+        }
+    }
+    
+    var color: String {
+        switch self {
+        case .connected: return "green"
+        case .notResponding: return "orange"
+        case .notFound: return "orange"
+        }
+    }
+}
+
 @Model
 class Species {
     @Attribute(.unique) var scientificName: String
@@ -55,6 +87,23 @@ class Plant {
     
     // HomeKit accessory unique identifier
     var sensorIdentifier: UUID? = nil
+    
+    // Sensor connection status (stored as raw value)
+    private var sensorStatusRawValue: String?
+    
+    // Sensor connection status (computed property)
+    var sensorStatus: SensorStatus? {
+        get {
+            guard let rawValue = sensorStatusRawValue else { return nil }
+            return SensorStatus(rawValue: rawValue)
+        }
+        set {
+            sensorStatusRawValue = newValue?.rawValue
+        }
+    }
+    
+    // Last time the sensor was successfully connected
+    var lastSuccessfulConnection: Date? = nil
     
     init(name: String, species: Species, image: Data? = nil) {
         self.name = name

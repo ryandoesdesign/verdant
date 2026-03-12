@@ -13,6 +13,9 @@ struct VerdantApp: App {
     let modelContainer: ModelContainer
     @State private var sensorMonitor: SensorMonitor?
     
+    // Notification delegate
+    private let notificationDelegate = NotificationDelegate()
+    
     init() {
         do {
             // Create the model container
@@ -20,6 +23,12 @@ struct VerdantApp: App {
             
             // Seed the database with species on first launch
             seedSpeciesIfNeeded(context: modelContainer.mainContext)
+            
+            // Configure notification categories
+            configureNotificationCategories()
+            
+            // Set notification delegate
+            UNUserNotificationCenter.current().delegate = notificationDelegate
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }
@@ -37,6 +46,29 @@ struct VerdantApp: App {
                 .environment(sensorMonitor)
         }
         .modelContainer(modelContainer)
+    }
+    
+    private func configureNotificationCategories() {
+        let openHomeAction = UNNotificationAction(
+            identifier: "OPEN_HOME_APP",
+            title: "Open Home App",
+            options: [.foreground]
+        )
+        
+        let dismissAction = UNNotificationAction(
+            identifier: "DISMISS",
+            title: "Dismiss",
+            options: []
+        )
+        
+        let sensorIssueCategory = UNNotificationCategory(
+            identifier: "SENSOR_ISSUE",
+            actions: [openHomeAction, dismissAction],
+            intentIdentifiers: [],
+            options: []
+        )
+        
+        UNUserNotificationCenter.current().setNotificationCategories([sensorIssueCategory])
     }
     
     private func seedSpeciesIfNeeded(context: ModelContext) {

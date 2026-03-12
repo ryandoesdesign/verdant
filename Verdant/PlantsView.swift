@@ -20,9 +20,19 @@ struct PlantGridCell: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            PlantImage(data: plant.image)
-                .aspectRatio(1, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+            ZStack(alignment: .topTrailing) {
+                PlantImage(data: plant.image)
+                    .aspectRatio(1, contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                
+                // Sensor status badge overlay
+                if let sensorStatus = plant.sensorStatus {
+                    SensorStatusBadge(status: sensorStatus)
+                        .padding(8)
+                        .background(.regularMaterial, in: Circle())
+                        .padding(8)
+                }
+            }
             
             VStack(alignment: .leading, spacing: 2) {
                 Group {

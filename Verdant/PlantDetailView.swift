@@ -24,19 +24,7 @@ struct PlantDetailView: View {
                     .frame(height: 187)
                 
                 // Sensor status indicator
-                if plant.sensorIdentifier != nil {
-                    HStack(spacing: 8) {
-                        Image(systemName: "sensor.fill")
-                            .foregroundStyle(.green)
-                        Text("Sensor Connected")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color.green.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
+                SensorStatusView(plant: plant)
                 
                 NavigationLink {
                     SampleListView(
